@@ -21,7 +21,7 @@ ocrevus_treatments <- edmus_trt_dm |>
     )
 
 ocrevus_relapses <- edmus_episodes |>
-    select(patient_id, relapse_date = date) |>
+    select(patient_id, relapse_id = episode_id, relapse_date = date) |>
     inner_join(ocrevus_treatments, by = "patient_id", relationship = "many-to-many") |>
     filter(
         relapse_date >= (ocrevus_start + dmonths(3)),
@@ -39,6 +39,8 @@ relapses_with_assessments <- ocrevus_relapses |>
     slice_min(time_between_relapse_and_last_assessment, n = 1, with_ties = FALSE) |>
     ungroup() |>
     rename(date_of_last_assessment = assessment_date)
+
+relapse_cellcounts <- read_excel("data/data-cellcount.xlsx")
 
 data <- relapses_with_assessments |>
     left_join(edmus_personal |> select(
@@ -61,9 +63,10 @@ data <- relapses_with_assessments |>
     relocate(
         edmus_id, sap, date_of_birth, gender, disease_course, ms_onset,
         starts_with("ocrevus_"), time_between_onset_and_ocrevus_start,
-        relapse_date, age_at_relapse, date_of_last_assessment,
+        relapse_id, relapse_date, age_at_relapse, date_of_last_assessment,
         time_between_relapse_and_onset, time_between_relapse_and_last_assessment
-    )
+    ) |>
+    left_join(relapse_cellcounts, by = "relapse_id")
 
 dir.create("output", showWarnings = FALSE)
 write_xlsx(data, "output/ocrevus-relapses.xlsx")
