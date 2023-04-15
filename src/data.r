@@ -1,6 +1,7 @@
 library(writexl)
 
 source("src/edmus.r")
+source("src/biobank.r")
 
 patients <- edmus_personal |>
     left_join(edmus_diagnosis, by = "patient_id") |>
@@ -42,17 +43,23 @@ relapses_with_assessments <- ocrevus_relapses |>
 data <- relapses_with_assessments |>
     left_join(edmus_personal |> select(
         patient_id,
+        edmus_local_id = local_identifier,
         nhc = other_identifier, gender, date_of_birth
     ), by = "patient_id") |>
     left_join(edmus_diagnosis |> select(patient_id, disease_course, ms_onset), by = "patient_id") |>
     mutate(
+        sap = coalesce(
+            biobank_nhc2sap(nhc),
+            biobank_edmus2sap(edmus_local_id)
+        ),
         time_between_onset_and_ocrevus_start = ocrevus_start - ms_onset,
         time_between_relapse_and_onset = relapse_date - ms_onset,
         age_at_relapse = (relapse_date - date_of_birth) / dyears(1)
     ) |>
+    select(-edmus_local_id, -nhc) |>
     rename(edmus_id = patient_id) |>
     relocate(
-        edmus_id, nhc, date_of_birth, gender, disease_course, ms_onset,
+        edmus_id, sap, date_of_birth, gender, disease_course, ms_onset,
         starts_with("ocrevus_"), time_between_onset_and_ocrevus_start,
         relapse_date, age_at_relapse, date_of_last_assessment,
         time_between_relapse_and_onset, time_between_relapse_and_last_assessment
