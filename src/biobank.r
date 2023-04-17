@@ -19,12 +19,12 @@ biobank_fclinica <- biobank_load("data/biobank-fclinica.xlsx") |>
 
 biobank_nhc2sap <- function(nhc) {
     tibble(nhc = nhc) |>
-        left_join(biobank_fclinica |> select(nhc, sap), by = "nhc") |>
+        left_join(biobank_fclinica |> select(nhc, sap), by = "nhc", multiple = "first") |>
         pull(sap)
 }
 
 biobank_edmus2sap <- function(id_edmus_local) {
     tibble(n_edmus = id_edmus_local) |>
-        left_join(biobank_fclinica |> select(n_edmus, sap), by = "n_edmus") |>
+        left_join(biobank_fclinica |> select(n_edmus, sap), by = "n_edmus", multiple = "first") |>
         pull(sap)
 }
