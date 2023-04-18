@@ -26,7 +26,7 @@ ocrevus_relapses <- edmus_episodes |>
     select(patient_id, relapse_id = episode_id, relapse_date = date) |>
     inner_join(ocrevus_treatments, by = "patient_id", relationship = "many-to-many") |>
     filter(
-        relapse_date >= (ocrevus_start + dmonths(3)),
+        relapse_date >= (ocrevus_start + dmonths(6)),
         ocrevus_status == "Ongoing" | relapse_date < ocrevus_end
     ) |>
     select(patient_id, relapse_id, relapse_date)
@@ -38,6 +38,7 @@ relapses_with_assessments <- ocrevus_relapses |>
     ) |>
     filter(assessment_date < relapse_date) |>
     mutate(time_between_relapse_and_last_assessment = relapse_date - assessment_date) |>
+    filter(time_between_relapse_and_last_assessment < dmonths(9)) |>
     slice_min(
         time_between_relapse_and_last_assessment,
         by = c("patient_id", "relapse_id"),
@@ -53,12 +54,12 @@ nonrelapse_assessments <- edmus_clinical |>
     inner_join(ocrevus_treatments, by = "patient_id", relationship = "many-to-many") |>
     inner_join(ocrevus_relapses, by = "patient_id", relationship = "many-to-many") |>
     filter(
-        assessment_date >= ocrevus_start,
+        assessment_date >= (ocrevus_start + dmonths(3)),
         ocrevus_status == "Ongoing" | assessment_date < ocrevus_end
     ) |>
     select(patient_id, assessment_id, assessment_date, relapse_id, relapse_date) |>
     mutate(time_between_relapse_and_assessment = assessment_date - relapse_date) |>
-    filter(abs(time_between_relapse_and_assessment) >= dmonths(6)) |>
+    filter(abs(time_between_relapse_and_assessment) >= dmonths(3)) |>
     slice_min(
         abs(time_between_relapse_and_assessment),
         by = c("patient_id", "relapse_id"),
@@ -84,10 +85,10 @@ patient_info <- patients |>
     ) |>
     select(-nhc, -edmus_local_id)
 
-assessment_cellcounts <- read_excel("data/lab-cellcounts.xlsx")
+assessment_cellcounts <- read_excel("data/ms-cellcounts.xlsx")
 
 relapse_data <- relapses_with_assessments |>
-    inner_join(assessment_cellcounts, by = c(last_assessment_id = "assessment_id")) |>
+    left_join(assessment_cellcounts, by = c(last_assessment_id = "assessment_id")) |>
     slice_sample(n = 1, by = "patient_id") |>
     left_join(patient_info, by = "patient_id") |>
     relocate(
@@ -103,7 +104,7 @@ nonrelapse_data <- nonrelapse_assessments |>
     left_join(assessment_cellcounts, by = "assessment_id") |>
     relocate(
         patient_id, sap, assessment_id, assessment_date,
-        starts_with("closest_relapse_"), time_between_assessment_and_closest_relapse
+        date_of_closest_relapse, time_between_assessment_and_closest_relapse
     ) |>
     arrange(patient_id, assessment_date)
 
