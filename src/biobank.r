@@ -11,7 +11,7 @@ biobank_load <- function(path) {
 biobank_normalize_names <- function(data) {
     data |>
         normalize_names() |>
-        rename_with(\(x) str_replace(x, "^fc_", ""))
+        rename_with(~ .x |> str_replace("^fc_", ""))
 }
 
 biobank_fclinica <- biobank_load("data/biobank-fclinica.xlsx") |>
