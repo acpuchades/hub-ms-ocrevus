@@ -1,3 +1,4 @@
+library(readxl)
 library(writexl)
 
 source("src/edmus.r")
@@ -38,7 +39,7 @@ relapses_with_assessments <- ocrevus_relapses |>
     ) |>
     filter(assessment_date < relapse_date) |>
     mutate(time_between_relapse_and_last_assessment = relapse_date - assessment_date) |>
-    filter(time_between_relapse_and_last_assessment < dmonths(9)) |>
+    filter(time_between_relapse_and_last_assessment < dmonths(3)) |>
     slice_min(
         time_between_relapse_and_last_assessment,
         by = c("patient_id", "relapse_id"),
